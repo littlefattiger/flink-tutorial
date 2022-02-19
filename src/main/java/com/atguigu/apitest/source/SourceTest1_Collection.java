@@ -1,12 +1,5 @@
-package com.atguigu.apitest.source;/**
- * Copyright (c) 2018-2028 尚硅谷 All Rights Reserved
- * <p>
- * Project: FlinkTutorial
- * Package: com.atguigu.apitest.source
- * Version: 1.0
- * <p>
- * Created by wushengran on 2020/11/7 11:33
- */
+package com.atguigu.apitest.source;
+
 
 import com.atguigu.apitest.beans.SensorReading;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -15,12 +8,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.util.Arrays;
 
-/**
- * @ClassName: SourceTest1_Collection
- * @Description:
- * @Author: wushengran on 2020/11/7 11:33
- * @Version: 1.0
- */
+
 public class SourceTest1_Collection {
     public static void main(String[] args) throws Exception{
         // 创建执行环境

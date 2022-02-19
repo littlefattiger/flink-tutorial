@@ -15,10 +15,15 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.collector.selector.OutputSelector;
 import org.apache.flink.streaming.api.datastream.ConnectedStreams;
 import org.apache.flink.streaming.api.datastream.DataStream;
+
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.co.CoMapFunction;
+import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
+
 
 import java.util.Collections;
 
@@ -41,22 +46,31 @@ public class TransformTest4_MultipleStreams {
             String[] fields = line.split(",");
             return new SensorReading(fields[0], new Long(fields[1]), new Double(fields[2]));
         } );
+        final OutputTag<SensorReading> lowTag = new OutputTag<SensorReading>("low"){};
+        final OutputTag<SensorReading> highTag = new OutputTag<SensorReading>("high"){};
+        final OutputTag<SensorReading> allTag = new OutputTag<SensorReading>("all"){};
 
         // 1. 分流，按照温度值30度为界分为两条流
-        SplitStream<SensorReading> splitStream = dataStream.split(new OutputSelector<SensorReading>() {
+        SingleOutputStreamOperator<SensorReading> splitStream = dataStream.process(new ProcessFunction<SensorReading, SensorReading>() {
             @Override
-            public Iterable<String> select(SensorReading value) {
-                return (value.getTemperature() > 30) ? Collections.singletonList("high") : Collections.singletonList("low");
+            public void processElement(SensorReading sensorReading, ProcessFunction<SensorReading, SensorReading>.Context context, Collector<SensorReading> collector) throws Exception {
+
+           if (sensorReading.getTemperature() > 30){
+               context.output(highTag, sensorReading);
+           }else {
+               context.output(lowTag, sensorReading);
+           }
+                context.output(allTag, sensorReading);
             }
         });
 
-        DataStream<SensorReading> highTempStream = splitStream.select("high");
-        DataStream<SensorReading> lowTempStream = splitStream.select("low");
-        DataStream<SensorReading> allTempStream = splitStream.select("high", "low");
+        DataStream<SensorReading> highTempStream = splitStream.getSideOutput(highTag);
+        DataStream<SensorReading> lowTempStream = splitStream.getSideOutput(lowTag);
+
 
         highTempStream.print("high");
         lowTempStream.print("low");
-        allTempStream.print("all");
+        splitStream.print("all");
 
         // 2. 合流 connect，将高温流转换成二元组类型，与低温流连接合并之后，输出状态信息
         DataStream<Tuple2<String, Double>> warningStream = highTempStream.map(new MapFunction<SensorReading, Tuple2<String, Double>>() {
@@ -84,7 +98,7 @@ public class TransformTest4_MultipleStreams {
 
         // 3. union联合多条流
 //        warningStream.union(lowTempStream);
-        highTempStream.union(lowTempStream, allTempStream);
+        highTempStream.union(lowTempStream, splitStream);
 
         env.execute();
     }
