@@ -1,27 +1,13 @@
-package com.atguigu.wc;/**
- * Copyright (c) 2018-2028 尚硅谷 All Rights Reserved
- * <p>
- * Project: FlinkTutorial
- * Package: com.atguigu.wc
- * Version: 1.0
- * <p>
- * Created by wushengran on 2020/11/6 11:22
- */
+package com.atguigu.wc;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.DataSource;
+import org.apache.flink.api.java.operators.AggregateOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.util.Collector;
 
-/**
- * @ClassName: WordCount
- * @Description:
- * @Author: wushengran on 2020/11/6 11:22
- * @Version: 1.0
- */
+
 
 // 批处理word count
 public class WordCount {
@@ -34,9 +20,9 @@ public class WordCount {
         DataSet<String> inputDataSet = env.readTextFile(inputPath);
 
         // 对数据集进行处理，按空格分词展开，转换成(word, 1)二元组进行统计
-        DataSet<Tuple2<String, Integer>> resultSet = inputDataSet.flatMap(new MyFlatMapper())
+        AggregateOperator<Tuple2<String, Integer>> resultSet = inputDataSet.flatMap(new MyFlatMapper())
                 .groupBy(0)    // 按照第一个位置的word分组
-                .sum(1);    // 将第二个位置上的数据求和
+                .sum(1);// 将第二个位置上的数据求和
 
         resultSet.print();
     }
